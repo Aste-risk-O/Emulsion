@@ -1,0 +1,6 @@
+{
+  "name": "EMULSION",
+  "description": "An atmospheric personal memory diary that develops real everyday photos, raw notes, and music into living Polaroid memories.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
