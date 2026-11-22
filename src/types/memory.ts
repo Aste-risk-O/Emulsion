@@ -3,6 +3,11 @@ export type LanguageCode = 'ru' | 'en' | 'mixed';
 export type TimeOfDay = 'dawn' | 'day' | 'dusk' | 'night' | 'unspecified';
 
 export type VisualRuleId =
+  | 'dawn-halation'
+  | 'nocturnal-step-print'
+  | 'wet-cyanotype'
+  | 'light-leak-double-exposure'
+  | 'direct-flash-grain'
   | 'paradox-step-print'
   | 'architectural-halation'
   | 'nocturnal-flash-baroque'
@@ -47,6 +52,7 @@ export interface MusicSpec {
   energy: number; // 0..1
   motif: SynthMotif;
   analyzedFromAudioFile?: boolean;
+  autoMatched?: boolean;
 }
 
 export interface TextNuanceAnalysis {
@@ -87,6 +93,7 @@ export interface VisualDirective {
   typographyStyle: string;
   gradientStops: [string, string, string];
   inkPolarity: 'light' | 'dark';
+  borderTone?: 'cream' | 'dark' | 'cool';
   textColor: string;
   mutedTextColor: string;
   scrimStyle: string;
@@ -95,6 +102,7 @@ export interface VisualDirective {
   flashContrast: boolean;
   motionBlurOnKinetic: boolean;
   particleStyle: 'dust' | 'motes' | 'embers' | 'clouds' | 'sparks';
+  particleSpeedMultiplier?: number;
   beatStepMs: number;
   calmFrameSlowdownMs?: number;
 }
@@ -102,6 +110,7 @@ export interface VisualDirective {
 export interface MemoryDay {
   id: string;
   title: string;
+  subtitle?: string;
   dateLabel: string;
   createdAt: string;
   isPreloaded?: boolean;
@@ -111,5 +120,6 @@ export interface MemoryDay {
   palette: ExtractedPalette;
   textNuance: TextNuanceAnalysis;
   visual: VisualDirective;
+  couplingExplanation?: string;
   analysisSource: 'gemini+signals' | 'deterministic-signals' | 'curated-case-study';
 }

@@ -148,20 +148,30 @@ export const PolaroidPrint: React.FC<PolaroidPrintProps> = ({
           />
         )}
 
-        {/* Instant-Film Cream Matte Frame */}
+        {/* Instant-Film Matte Frame (Cream / Obsidian Darkroom / Cool Cyanotype) */}
         <div
-          className={`relative overflow-hidden rounded-[2px] bg-[#F4F1EA] p-3 pb-5 transition-shadow duration-500 ${
+          className={`relative overflow-hidden rounded-[2px] p-3 pb-5 transition-shadow duration-500 ${
+            visual.borderTone === 'dark'
+              ? 'bg-[#1B1A18]'
+              : visual.borderTone === 'cool'
+                ? 'bg-[#E9EEF2]'
+                : 'bg-[#F4F1EA]'
+          } ${
             isSpotlighted
               ? 'shadow-[0_28px_72px_rgba(0,0,0,0.68)] ring-1 ring-white/50'
-            : visual.flashContrast
-              ? 'shadow-[0_20px_50px_rgba(0,0,0,0.6)] ring-1 ring-white/30'
-              : 'shadow-[0_18px_46px_rgba(0,0,0,0.42)]'
-        }`}
-        style={{
-          backgroundImage:
-            'linear-gradient(145deg, rgba(255,255,255,0.55) 0%, rgba(244,241,234,0.92) 55%, rgba(230,224,211,0.96) 100%)',
-        }}
-      >
+              : visual.flashContrast
+                ? 'shadow-[0_20px_50px_rgba(0,0,0,0.6)] ring-1 ring-white/30'
+                : 'shadow-[0_18px_46px_rgba(0,0,0,0.42)]'
+          }`}
+          style={{
+            backgroundImage:
+              visual.borderTone === 'dark'
+                ? 'linear-gradient(145deg, rgba(46,43,39,0.5) 0%, rgba(27,26,24,0.95) 55%, rgba(18,17,16,0.98) 100%)'
+                : visual.borderTone === 'cool'
+                  ? 'linear-gradient(145deg, rgba(244,248,252,0.7) 0%, rgba(233,238,242,0.94) 55%, rgba(215,224,232,0.96) 100%)'
+                  : 'linear-gradient(145deg, rgba(255,255,255,0.55) 0%, rgba(244,241,234,0.92) 55%, rgba(230,224,211,0.96) 100%)',
+          }}
+        >
         {/* Image Well */}
         <div className={`relative w-full overflow-hidden bg-[#181614] ${aspectClass}`}>
           <img
@@ -219,11 +229,27 @@ export const PolaroidPrint: React.FC<PolaroidPrintProps> = ({
         </div>
 
         {/* Handwritten / Editorial Ink Caption Area */}
-        <div className="mt-3 text-[#181715]">
+        <div
+          className={`mt-3 ${
+            visual.borderTone === 'dark'
+              ? 'text-[#EDE8DF]'
+              : visual.borderTone === 'cool'
+                ? 'text-[#14212E]'
+                : 'text-[#181715]'
+          }`}
+        >
           <p className="font-editorial text-[16px] leading-snug min-h-[42px]">
             {num} — {photo.caption}
           </p>
-          <div className="mt-1.5 flex items-center justify-between gap-2 font-tabular text-[10px] tracking-wider text-[#181715]/55">
+          <div
+            className={`mt-1.5 flex items-center justify-between gap-2 font-tabular text-[10px] tracking-wider ${
+              visual.borderTone === 'dark'
+                ? 'text-[#EDE8DF]/55'
+                : visual.borderTone === 'cool'
+                  ? 'text-[#14212E]/60'
+                  : 'text-[#181715]/55'
+            }`}
+          >
             <span>{photo.timestampLabel}</span>
             <span
               className="inline-block h-1.5 w-5 rounded-[1px]"

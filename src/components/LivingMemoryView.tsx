@@ -404,6 +404,14 @@ export const LivingMemoryView: React.FC<LivingMemoryViewProps> = ({
           <h1 className="font-editorial mt-1 text-3xl md:text-5xl font-normal tracking-tight text-balance">
             {day.title}
           </h1>
+          {day.subtitle && (
+            <p
+              className="font-editorial italic mt-1.5 text-sm md:text-base max-w-xl mx-auto opacity-90 text-balance"
+              style={{ color: day.visual.textColor }}
+            >
+              {day.subtitle}
+            </p>
+          )}
           <p
             className="mt-2 font-tabular text-xs tracking-wide"
             style={{ color: day.visual.mutedTextColor }}

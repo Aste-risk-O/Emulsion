@@ -14,7 +14,11 @@ import { NewDayModal } from './components/NewDayModal';
 import { recomputeMemoryWithNewPhotos } from './engine/createMemoryService';
 import { extractPaletteFromImages } from './engine/pixelExtractor';
 import { analyzeTextNuance } from './engine/textAnalyzer';
-import { synthesizeVisualDirective } from './engine/memorySynthesizer';
+import {
+  buildCouplingExplanation,
+  chooseNewDayVisualMode,
+  synthesizeVisualDirective,
+} from './engine/memorySynthesizer';
 
 function fileToDataUrl(file: File): Promise<string> {
   return new Promise((resolve, reject) => {
@@ -127,17 +131,25 @@ export default function App() {
   }) => {
     if (!activeDay) return;
     const nextText = updates.rawText ?? activeDay.rawText;
+    const nextBpm = updates.bpm ?? activeDay.music.bpm;
+    const nextMode = updates.mode ?? activeDay.music.mode;
     const nextMusic = {
       ...activeDay.music,
-      bpm: updates.bpm ?? activeDay.music.bpm,
-      mode: updates.mode ?? activeDay.music.mode,
+      bpm: nextBpm,
+      mode: nextMode,
+      energy: activeDay.music.analyzedFromAudioFile
+        ? activeDay.music.energy
+        : Math.min(0.95, Math.max(0.18, Number((((nextBpm - 48) / 132) * 0.65 + (nextMode === 'minor' ? 0.2 : 0.12)).toFixed(2)))),
     };
     const nextNuance = analyzeTextNuance(nextText);
+    const nextRule = activeDay.isPreloaded
+      ? activeDay.visual.ruleId
+      : chooseNewDayVisualMode(activeDay.palette, nextNuance, nextMusic, nextText);
     const nextVisual = synthesizeVisualDirective(
       activeDay.palette,
       nextNuance,
       nextMusic,
-      activeDay.visual.ruleId
+      nextRule
     );
 
     const updatedDay: MemoryDay = {
@@ -147,6 +159,9 @@ export default function App() {
       music: nextMusic,
       textNuance: nextNuance,
       visual: nextVisual,
+      couplingExplanation: activeDay.isPreloaded
+        ? activeDay.couplingExplanation
+        : buildCouplingExplanation(activeDay.palette, nextNuance, nextMusic, nextVisual),
     };
     updateMemories(memories.map((m) => (m.id === activeDay.id ? updatedDay : m)));
   };

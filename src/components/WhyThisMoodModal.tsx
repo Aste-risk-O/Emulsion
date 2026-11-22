@@ -119,12 +119,19 @@ export const WhyThisMoodModal: React.FC<WhyThisMoodModalProps> = ({ day, onClose
             </h3>
             <p className="font-editorial mt-2 text-xl text-[#F2EFE9]">{day.visual.ruleName}</p>
             <p className="mt-1.5 text-sm leading-relaxed text-[#F2EFE9]/75">
-              {day.visual.ruleDescription}
+              {day.couplingExplanation || day.visual.ruleDescription}
             </p>
+            {day.couplingExplanation && (
+              <p className="mt-1.5 text-xs leading-relaxed text-[#F2EFE9]/55">
+                {day.visual.ruleDescription}
+              </p>
+            )}
             <div className="mt-3 flex flex-wrap items-center gap-x-4 gap-y-1 text-xs text-[#F2EFE9]/65 font-tabular">
-              <span>Typography: {day.visual.typographyStyle}</span>
-              <span aria-hidden="true">·</span>
               <span>Reveal step: {day.visual.beatStepMs}ms</span>
+              <span aria-hidden="true">·</span>
+              <span>Particle speed: ×{day.visual.particleSpeedMultiplier ?? 1}</span>
+              <span aria-hidden="true">·</span>
+              <span>Borders: {day.visual.borderTone ?? 'cream'}</span>
               <span aria-hidden="true">·</span>
               <span>Ink: {day.visual.inkPolarity}</span>
             </div>

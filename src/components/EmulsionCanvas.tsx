@@ -188,10 +188,12 @@ export const EmulsionCanvas: React.FC<EmulsionCanvasProps> = ({
         ctx.fillRect(0, 0, width, height);
       }
 
-      // 2. Crepuscular Sky Rays (Architectural Halation & Sunlit Paper Air)
+      // 2. Crepuscular Sky Rays (Dawn / Architectural / Sunlit) & Light-Leak Double Exposure Flares
       if (
         p !== 'paper' &&
-        (v.ruleId === 'architectural-halation' || v.ruleId === 'sunlit-paper-air')
+        (v.ruleId === 'architectural-halation' ||
+          v.ruleId === 'sunlit-paper-air' ||
+          v.ruleId === 'dawn-halation')
       ) {
         ctx.save();
         ctx.translate(width * 0.15, -40);
@@ -204,10 +206,35 @@ export const EmulsionCanvas: React.FC<EmulsionCanvasProps> = ({
           ctx.fillRect(r * (width * 0.24), 0, 95 + r * 28, height * 1.15);
         }
         ctx.restore();
+      } else if (p !== 'paper' && v.ruleId === 'light-leak-double-exposure') {
+        const edgeGrad = ctx.createLinearGradient(0, 0, width * 0.34, 0);
+        edgeGrad.addColorStop(0, '#E8733A3B');
+        edgeGrad.addColorStop(0.55, `${acc}20`);
+        edgeGrad.addColorStop(1, 'rgba(0,0,0,0)');
+        ctx.fillStyle = edgeGrad;
+        ctx.fillRect(0, 0, width * 0.34, height);
+
+        const rightGrad = ctx.createLinearGradient(width, 0, width * 0.72, 0);
+        rightGrad.addColorStop(0, `${hi}2A`);
+        rightGrad.addColorStop(1, 'rgba(0,0,0,0)');
+        ctx.fillStyle = rightGrad;
+        ctx.fillRect(width * 0.72, 0, width * 0.28, height);
+      } else if (p !== 'paper' && v.ruleId === 'wet-cyanotype') {
+        const mistGrad = ctx.createLinearGradient(0, height * 0.5, 0, height);
+        mistGrad.addColorStop(0, 'rgba(0,0,0,0)');
+        mistGrad.addColorStop(1, '#6CA0C828');
+        ctx.fillStyle = mistGrad;
+        ctx.fillRect(0, height * 0.5, width, height * 0.5);
       }
 
-      // 3. Kinetic Film-Gate Scratches (Paradox chaos frames only; vanish on calm frame)
-      if (p !== 'paper' && v.ruleId === 'paradox-step-print' && !calm) {
+      // 3. Kinetic Film-Gate Scratches (Paradox chaos, Nocturnal Step-Print & Direct Flash)
+      if (
+        p !== 'paper' &&
+        !calm &&
+        (v.ruleId === 'paradox-step-print' ||
+          v.ruleId === 'nocturnal-step-print' ||
+          v.ruleId === 'direct-flash-grain')
+      ) {
         if (Math.sin(tick * 11) > 0.35) {
           ctx.strokeStyle = `${hi}2A`;
           ctx.lineWidth = 1.5;
@@ -219,8 +246,9 @@ export const EmulsionCanvas: React.FC<EmulsionCanvasProps> = ({
         }
       }
 
-      // 4. Emulsion Dust, Motes & Optical Bokeh Rings
-      const speedMult = calm ? 0.32 : v.particleStyle === 'sparks' ? 1.5 : 0.85;
+      // 4. Emulsion Dust, Motes & Optical Bokeh Rings (velocity coupled to music BPM & energy)
+      const baseSpeed = calm ? 0.32 : v.particleStyle === 'sparks' ? 1.35 : 0.85;
+      const speedMult = baseSpeed * (v.particleSpeedMultiplier ?? 1);
       for (const pt of particles) {
         if (!prefersReducedMotion) {
           pt.x += pt.vx * speedMult + Math.sin(tick + pt.phase) * 0.18;

@@ -4,14 +4,19 @@ import {
   analyzeTextNuance,
   detectLanguage,
   detectTimeOfDay,
+  generateDeterministicSubtitle,
   generateDeterministicTitle,
+  sanitizeMicroCaption,
   segmentCaptions,
 } from './textAnalyzer';
 import {
+  buildCouplingExplanation,
   buildMemoryPhotosFromRaw,
+  chooseNewDayVisualMode,
   chooseVisualRule,
   contrastRatio,
   getMemoryCountHeadline,
+  pickMusicForMood,
   synthesizeVisualDirective,
 } from './memorySynthesizer';
 import type { ExtractedPalette, MusicSpec } from '../types/memory';
@@ -108,11 +113,35 @@ test('paradox step-print marks final frame calm and earlier frames kinetic', () 
   assert.equal(photos[4].tiltDeg, 0);
 });
 
-test('fallback title and caption segmentation stay concise', () => {
-  const nuance = analyzeTextNuance('Насколько привычный вид настолько же необычный в своей конфигурации');
-  const title = generateDeterministicTitle('Насколько привычный вид настолько же необычный в своей конфигурации', nuance);
-  const words = title.split(/\s+/);
-  assert.ok(words.length >= 3 && words.length <= 7);
+test('never slices raw diary text into title or polaroid captions and keeps <=32 chars without ellipsis', () => {
+  const schoolNote =
+    'Сегодня всю пару по физике сидели с друзьями на задней парте и перекидывались смешными бумажными записками пока учитель не видел.';
+  const nuance = analyzeTextNuance(schoolNote);
+  const title = generateDeterministicTitle(schoolNote, nuance);
+  const subtitle = generateDeterministicSubtitle(schoolNote, nuance);
+
+  assert.ok(!title.startsWith('Сегодня всю пару'));
+  assert.ok(!title.includes('...'));
+  assert.ok(!subtitle.includes('...'));
+
+  const photos = buildMemoryPhotosFromRaw(
+    [
+      { src: 'a', orientation: 'portrait', luminance: 0.6 },
+      { src: 'b', orientation: 'landscape', luminance: 0.48 },
+      { src: 'c', orientation: 'portrait', luminance: 0.35 },
+    ],
+    schoolNote,
+    nuance,
+    'light-leak-double-exposure'
+  );
+
+  for (const p of photos) {
+    assert.ok(p.caption.length > 0 && p.caption.length <= 32, `caption too long: ${p.caption}`);
+    assert.ok(!p.caption.includes('...') && !p.caption.includes('…'));
+    assert.ok(!schoolNote.startsWith(p.caption));
+  }
+
+  assert.equal(sanitizeMicroCaption('очень длинная тестовая подпись для карточки поляроида...', 32).includes('...'), false);
   assert.ok(segmentCaptions('Первая мысль. Вторая мысль о тишине!').length === 2);
 });
 
@@ -142,4 +171,86 @@ test('chooseVisualRule handles courtyard paradox cleanly', () => {
     motif: 'lofi-keys',
   };
   assert.equal(chooseVisualRule(palette, nuance, music), 'architectural-halation');
+});
+
+test('routes + New Day cleanly across all 5 distinct visual modes and couples BPM/borders', () => {
+  const warmPalette: ExtractedPalette = {
+    swatches: [],
+    dominantHex: '#D89A6C',
+    shadowHex: '#33241D',
+    highlightHex: '#F9E7D2',
+    accentHex: '#E68449',
+    averageLuminance: 0.62,
+    contrastSpread: 0.5,
+    source: 'canvas-pixels',
+  };
+  const coolRainPalette: ExtractedPalette = {
+    swatches: [],
+    dominantHex: '#2D4F73',
+    shadowHex: '#101B29',
+    highlightHex: '#AEC6DE',
+    accentHex: '#5A89B8',
+    averageLuminance: 0.34,
+    contrastSpread: 0.48,
+    source: 'canvas-pixels',
+  };
+  const darkPalette: ExtractedPalette = {
+    swatches: [],
+    dominantHex: '#1B1F2E',
+    shadowHex: '#08090F',
+    highlightHex: '#D6D8E0',
+    accentHex: '#E08C45',
+    averageLuminance: 0.16,
+    contrastSpread: 0.78,
+    source: 'canvas-pixels',
+  };
+
+  // 1. Dawn Halation (warm coffee/morning + cream borders)
+  const dawnText = 'Тихое раннее утро, тёплый кофе на кухне';
+  const dawnNuance = analyzeTextNuance(dawnText);
+  const dawnMusic = pickMusicForMood(warmPalette, dawnNuance, dawnText);
+  const dawnMode = chooseNewDayVisualMode(warmPalette, dawnNuance, dawnMusic, dawnText);
+  assert.equal(dawnMode, 'dawn-halation');
+  assert.equal(synthesizeVisualDirective(warmPalette, dawnNuance, dawnMusic, dawnMode).borderTone, 'cream');
+
+  // 2. Light-Leak Double Exposure (warm nostalgic school notes + cream borders)
+  const schoolText = 'Скучный урок с друзьями, смеялись и писали записки в тетради';
+  const schoolNuance = analyzeTextNuance(schoolText);
+  const schoolMusic = pickMusicForMood(warmPalette, schoolNuance, schoolText);
+  const schoolMode = chooseNewDayVisualMode(warmPalette, schoolNuance, schoolMusic, schoolText);
+  assert.equal(schoolMode, 'light-leak-double-exposure');
+  assert.equal(synthesizeVisualDirective(warmPalette, schoolNuance, schoolMusic, schoolMode).borderTone, 'cream');
+
+  // 3. Wet Cyanotype (rain + cool blue pixels + cool borders)
+  const rainText = 'Иду под холодным дождём и смотрю на мокрые окна';
+  const rainNuance = analyzeTextNuance(rainText);
+  const rainMusic = pickMusicForMood(coolRainPalette, rainNuance, rainText);
+  const rainMode = chooseNewDayVisualMode(coolRainPalette, rainNuance, rainMusic, rainText);
+  assert.equal(rainMode, 'wet-cyanotype');
+  assert.equal(synthesizeVisualDirective(coolRainPalette, rainNuance, rainMusic, rainMode).borderTone, 'cool');
+
+  // 4. Nocturnal Step-Print (tense night + dark obsidian borders)
+  const tenseNightText = 'Поздняя ночь, тяжёлая усталость и тревога перед экзаменом';
+  const tenseNuance = analyzeTextNuance(tenseNightText);
+  const tenseMusic = pickMusicForMood(darkPalette, tenseNuance, tenseNightText);
+  const tenseMode = chooseNewDayVisualMode(darkPalette, tenseNuance, tenseMusic, tenseNightText);
+  assert.equal(tenseMode, 'nocturnal-step-print');
+  assert.equal(synthesizeVisualDirective(darkPalette, tenseNuance, tenseMusic, tenseMode).borderTone, 'dark');
+
+  // 5. Direct Flash & Grain (high BPM music manually selected)
+  const fastMusic: MusicSpec = {
+    title: 'Fast Club Pulse',
+    genre: 'Electronic',
+    bpm: 138,
+    mode: 'minor',
+    energy: 0.9,
+    motif: 'electronic-drift',
+  };
+  const flashMode = chooseNewDayVisualMode(darkPalette, tenseNuance, fastMusic, tenseNightText);
+  assert.equal(flashMode, 'direct-flash-grain');
+  const slowDirective = synthesizeVisualDirective(darkPalette, tenseNuance, tenseMusic, tenseMode);
+  const fastDirective = synthesizeVisualDirective(darkPalette, tenseNuance, fastMusic, flashMode);
+  assert.ok(fastDirective.beatStepMs < slowDirective.beatStepMs);
+  assert.ok((fastDirective.particleSpeedMultiplier ?? 1) > (slowDirective.particleSpeedMultiplier ?? 1));
+  assert.ok(buildCouplingExplanation(darkPalette, tenseNuance, fastMusic, fastDirective).includes('138 BPM'));
 });

@@ -31,6 +31,7 @@ export const NewDayModal: React.FC<NewDayModalProps> = ({ onClose, onCreated }) 
   const [photoSrcs, setPhotoSrcs] = useState<string[]>([]);
   const [livePalette, setLivePalette] = useState<ExtractedPalette | null>(null);
 
+  const [musicSelectionMode, setMusicSelectionMode] = useState<'auto' | 'manual'>('auto');
   const [musicTitle, setMusicTitle] = useState('Late Night Synth Keys');
   const [musicUrl, setMusicUrl] = useState('');
   const [genre, setGenre] = useState('Ambient Keys');
@@ -90,6 +91,7 @@ export const NewDayModal: React.FC<NewDayModalProps> = ({ onClose, onCreated }) 
       setBpm(analyzed.bpm);
       setEnergy(analyzed.energy);
       setAnalyzedFromAudioFile(true);
+      setMusicSelectionMode('manual');
     } catch {
       setError('Could not decode audio file. Try MP3/WAV or enter track details.');
     } finally {
@@ -111,23 +113,32 @@ export const NewDayModal: React.FC<NewDayModalProps> = ({ onClose, onCreated }) 
     setError(null);
     setIsDeveloping(true);
     try {
-      const motif = inferMotifFromGenre(genre, mode, bpm);
+      const safeBpm = Math.max(48, Math.min(180, Number(bpm) || 86));
+      const computedEnergy = analyzedFromAudioFile
+        ? energy
+        : Math.min(0.95, Math.max(0.18, Number(((safeBpm - 48) / 132 * 0.65 + (mode === 'minor' ? 0.2 : 0.12)).toFixed(2))));
+      const motif = inferMotifFromGenre(genre, mode, safeBpm);
+
       const day = await createMemoryDay({
         rawText,
         customTitle: customTitle.trim() || undefined,
         dateLabel: dateLabel.trim() || undefined,
         photoSrcs,
-        music: {
-          title: musicTitle.trim() || 'Untitled Soundtrack',
-          sourceUrl: musicUrl.trim() || undefined,
-          audioDataUrl,
-          genre: genre.trim() || 'Ambient',
-          bpm: Math.max(48, Math.min(180, Number(bpm) || 86)),
-          mode,
-          energy,
-          motif,
-          analyzedFromAudioFile,
-        },
+        autoPickMusic: musicSelectionMode === 'auto',
+        music:
+          musicSelectionMode === 'manual'
+            ? {
+                title: musicTitle.trim() || 'Untitled Soundtrack',
+                sourceUrl: musicUrl.trim() || undefined,
+                audioDataUrl,
+                genre: genre.trim() || 'Ambient',
+                bpm: safeBpm,
+                mode,
+                energy: computedEnergy,
+                motif,
+                analyzedFromAudioFile,
+              }
+            : undefined,
       });
       onCreated(day);
     } catch (err) {
@@ -311,16 +322,32 @@ export const NewDayModal: React.FC<NewDayModalProps> = ({ onClose, onCreated }) 
           <div className="border-t border-[#F2EFE9]/10 pt-5">
             <div className="flex flex-wrap items-center justify-between gap-2">
               <span className="font-tabular text-xs uppercase tracking-wider text-[#F2EFE9]/75">
-                3. Soundtrack (Audio File or Track Link / Details)
+                3. Soundtrack
               </span>
-              <button
-                type="button"
-                onClick={() => audioInputRef.current?.click()}
-                className="inline-flex items-center gap-1.5 border border-[#F2EFE9]/20 px-2.5 py-1 text-[11px] text-[#F2EFE9]/80 hover:bg-[#F2EFE9]/10 cursor-pointer"
-              >
-                <Upload className="h-3 w-3" aria-hidden="true" />
-                <span>Analyze Audio File (Web Audio)</span>
-              </button>
+              <div className="flex items-center gap-2">
+                <button
+                  type="button"
+                  onClick={() => setMusicSelectionMode('auto')}
+                  className={`px-2.5 py-1 text-[11px] font-medium border cursor-pointer transition-colors ${
+                    musicSelectionMode === 'auto'
+                      ? 'border-[#F2EFE9] bg-[#F2EFE9] text-[#121110]'
+                      : 'border-[#F2EFE9]/20 text-[#F2EFE9]/75 hover:bg-[#F2EFE9]/10'
+                  }`}
+                >
+                  Auto-pick music for this mood
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setMusicSelectionMode('manual')}
+                  className={`px-2.5 py-1 text-[11px] font-medium border cursor-pointer transition-colors ${
+                    musicSelectionMode === 'manual'
+                      ? 'border-[#F2EFE9] bg-[#F2EFE9] text-[#121110]'
+                      : 'border-[#F2EFE9]/20 text-[#F2EFE9]/75 hover:bg-[#F2EFE9]/10'
+                  }`}
+                >
+                  Choose track / upload audio
+                </button>
+              </div>
               <input
                 ref={audioInputRef}
                 type="file"
@@ -330,81 +357,110 @@ export const NewDayModal: React.FC<NewDayModalProps> = ({ onClose, onCreated }) 
               />
             </div>
 
-            <div className="mt-3 grid grid-cols-1 sm:grid-cols-2 gap-3">
-              <div>
-                <label htmlFor="new-day-track" className="block font-tabular text-[11px] text-[#F2EFE9]/60">
-                  Track Title / Artist
-                </label>
-                <input
-                  id="new-day-track"
-                  type="text"
-                  value={musicTitle}
-                  onChange={(e) => setMusicTitle(e.target.value)}
-                  className="mt-1 w-full border border-[#F2EFE9]/15 bg-[#121110] px-3 py-1.5 text-sm text-[#F2EFE9]"
-                />
+            {musicSelectionMode === 'auto' ? (
+              <div className="mt-3 flex flex-wrap items-center justify-between gap-3 border border-[#F2EFE9]/12 bg-[#1B1917] px-3.5 py-3">
+                <p className="text-xs leading-relaxed text-[#F2EFE9]/75">
+                  EMULSION will match track texture, BPM, and key automatically from your photos and diary note.
+                </p>
+                <button
+                  type="button"
+                  onClick={() => audioInputRef.current?.click()}
+                  className="inline-flex items-center gap-1.5 border border-[#F2EFE9]/20 px-2.5 py-1 text-[11px] text-[#F2EFE9]/80 hover:bg-[#F2EFE9]/10 cursor-pointer shrink-0"
+                >
+                  <Upload className="h-3 w-3" aria-hidden="true" />
+                  <span>Or upload audio</span>
+                </button>
               </div>
-              <div>
-                <label htmlFor="new-day-link" className="block font-tabular text-[11px] text-[#F2EFE9]/60">
-                  Spotify / Yandex / YouTube Link (optional)
-                </label>
-                <input
-                  id="new-day-link"
-                  type="url"
-                  placeholder="https://..."
-                  value={musicUrl}
-                  onChange={(e) => setMusicUrl(e.target.value)}
-                  className="mt-1 w-full border border-[#F2EFE9]/15 bg-[#121110] px-3 py-1.5 text-sm text-[#F2EFE9]"
-                />
-              </div>
-            </div>
+            ) : (
+              <>
+                <div className="mt-3 flex justify-end">
+                  <button
+                    type="button"
+                    onClick={() => audioInputRef.current?.click()}
+                    className="inline-flex items-center gap-1.5 border border-[#F2EFE9]/20 px-2.5 py-1 text-[11px] text-[#F2EFE9]/80 hover:bg-[#F2EFE9]/10 cursor-pointer"
+                  >
+                    <Upload className="h-3 w-3" aria-hidden="true" />
+                    <span>Analyze Audio File (Web Audio)</span>
+                  </button>
+                </div>
 
-            <div className="mt-3 grid grid-cols-3 gap-3">
-              <div>
-                <label htmlFor="new-day-genre" className="block font-tabular text-[11px] text-[#F2EFE9]/60">
-                  Genre / Texture
-                </label>
-                <select
-                  id="new-day-genre"
-                  value={genre}
-                  onChange={(e) => setGenre(e.target.value)}
-                  className="mt-1 w-full border border-[#F2EFE9]/15 bg-[#121110] px-2.5 py-1.5 text-sm text-[#F2EFE9]"
-                >
-                  <option value="Ambient Keys">Ambient Minimal</option>
-                  <option value="Lo-Fi Keys">Lo-Fi Keys</option>
-                  <option value="Baroque Strings">Baroque / Classical Strings</option>
-                  <option value="Acoustic Breeze">Acoustic / Folk</option>
-                  <option value="Electronic Drift">Electronic / Synth</option>
-                </select>
-              </div>
-              <div>
-                <label htmlFor="new-day-bpm" className="block font-tabular text-[11px] text-[#F2EFE9]/60">
-                  BPM
-                </label>
-                <input
-                  id="new-day-bpm"
-                  type="number"
-                  min={48}
-                  max={180}
-                  value={bpm}
-                  onChange={(e) => setBpm(Number(e.target.value))}
-                  className="mt-1 w-full border border-[#F2EFE9]/15 bg-[#121110] px-3 py-1.5 font-tabular text-sm text-[#F2EFE9]"
-                />
-              </div>
-              <div>
-                <label htmlFor="new-day-mode" className="block font-tabular text-[11px] text-[#F2EFE9]/60">
-                  Key Mode
-                </label>
-                <select
-                  id="new-day-mode"
-                  value={mode}
-                  onChange={(e) => setMode(e.target.value as 'major' | 'minor')}
-                  className="mt-1 w-full border border-[#F2EFE9]/15 bg-[#121110] px-2.5 py-1.5 text-sm text-[#F2EFE9]"
-                >
-                  <option value="minor">Minor</option>
-                  <option value="major">Major</option>
-                </select>
-              </div>
-            </div>
+                <div className="mt-2.5 grid grid-cols-1 sm:grid-cols-2 gap-3">
+                  <div>
+                    <label htmlFor="new-day-track" className="block font-tabular text-[11px] text-[#F2EFE9]/60">
+                      Track Title / Artist
+                    </label>
+                    <input
+                      id="new-day-track"
+                      type="text"
+                      value={musicTitle}
+                      onChange={(e) => setMusicTitle(e.target.value)}
+                      className="mt-1 w-full border border-[#F2EFE9]/15 bg-[#121110] px-3 py-1.5 text-sm text-[#F2EFE9]"
+                    />
+                  </div>
+                  <div>
+                    <label htmlFor="new-day-link" className="block font-tabular text-[11px] text-[#F2EFE9]/60">
+                      Spotify / Yandex / YouTube Link (optional)
+                    </label>
+                    <input
+                      id="new-day-link"
+                      type="url"
+                      placeholder="https://..."
+                      value={musicUrl}
+                      onChange={(e) => setMusicUrl(e.target.value)}
+                      className="mt-1 w-full border border-[#F2EFE9]/15 bg-[#121110] px-3 py-1.5 text-sm text-[#F2EFE9]"
+                    />
+                  </div>
+                </div>
+
+                <div className="mt-3 grid grid-cols-3 gap-3">
+                  <div>
+                    <label htmlFor="new-day-genre" className="block font-tabular text-[11px] text-[#F2EFE9]/60">
+                      Genre / Texture
+                    </label>
+                    <select
+                      id="new-day-genre"
+                      value={genre}
+                      onChange={(e) => setGenre(e.target.value)}
+                      className="mt-1 w-full border border-[#F2EFE9]/15 bg-[#121110] px-2.5 py-1.5 text-sm text-[#F2EFE9]"
+                    >
+                      <option value="Ambient Keys">Ambient Minimal</option>
+                      <option value="Lo-Fi Keys">Lo-Fi Keys</option>
+                      <option value="Baroque Strings">Baroque / Classical Strings</option>
+                      <option value="Acoustic Breeze">Acoustic / Folk</option>
+                      <option value="Electronic Drift">Electronic / Synth</option>
+                    </select>
+                  </div>
+                  <div>
+                    <label htmlFor="new-day-bpm" className="block font-tabular text-[11px] text-[#F2EFE9]/60">
+                      BPM
+                    </label>
+                    <input
+                      id="new-day-bpm"
+                      type="number"
+                      min={48}
+                      max={180}
+                      value={bpm}
+                      onChange={(e) => setBpm(Number(e.target.value))}
+                      className="mt-1 w-full border border-[#F2EFE9]/15 bg-[#121110] px-3 py-1.5 font-tabular text-sm text-[#F2EFE9]"
+                    />
+                  </div>
+                  <div>
+                    <label htmlFor="new-day-mode" className="block font-tabular text-[11px] text-[#F2EFE9]/60">
+                      Key Mode
+                    </label>
+                    <select
+                      id="new-day-mode"
+                      value={mode}
+                      onChange={(e) => setMode(e.target.value as 'major' | 'minor')}
+                      className="mt-1 w-full border border-[#F2EFE9]/15 bg-[#121110] px-2.5 py-1.5 text-sm text-[#F2EFE9]"
+                    >
+                      <option value="minor">Minor</option>
+                      <option value="major">Major</option>
+                    </select>
+                  </div>
+                </div>
+              </>
+            )}
 
             {analyzedFromAudioFile && (
               <p className="mt-2 inline-flex items-center gap-1.5 font-tabular text-[11px] text-[#E5B692]">
