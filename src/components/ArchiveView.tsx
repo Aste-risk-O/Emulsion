@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Disc3, RotateCcw } from 'lucide-react';
+import { Disc3, RotateCcw, Trash2 } from 'lucide-react';
 import type { MemoryDay } from '../types/memory';
 import type { ArchiveFilter } from './TopBar';
 import { audioEngine } from '../engine/audioEngine';
@@ -9,6 +9,7 @@ interface ArchiveViewProps {
   filter: ArchiveFilter;
   onFilterChange: (filter: ArchiveFilter) => void;
   onSelectDay: (day: MemoryDay) => void;
+  onDeleteDay: (id: string) => void;
   onNewDay: () => void;
   onResetArchive: () => void;
 }
@@ -18,6 +19,7 @@ export const ArchiveView: React.FC<ArchiveViewProps> = ({
   filter,
   onFilterChange,
   onSelectDay,
+  onDeleteDay,
   onNewDay,
   onResetArchive,
 }) => {
@@ -26,8 +28,6 @@ export const ArchiveView: React.FC<ArchiveViewProps> = ({
   const filtered = memories.filter((m) => {
     if (filter === 'series') return m.photos.length >= 2;
     if (filter === 'single') return m.photos.length === 1;
-    if (filter === 'ru') return m.textNuance.language === 'ru' || m.textNuance.language === 'mixed';
-    if (filter === 'en') return m.textNuance.language === 'en' || m.textNuance.language === 'mixed';
     return true;
   });
 
@@ -52,13 +52,13 @@ export const ArchiveView: React.FC<ArchiveViewProps> = ({
         <section className="mb-12 flex flex-col gap-6 md:flex-row md:items-end md:justify-between border-b border-[#F2EFE9]/10 pb-8">
           <div className="max-w-2xl">
             <p className="font-tabular text-xs tracking-[0.14em] text-[#F2EFE9]/55 uppercase">
-              Стол проявки · Archive of Days
+              Archive of Days
             </p>
             <h1 className="font-editorial mt-3 text-4xl md:text-5xl font-normal tracking-tight text-[#F2EFE9] text-balance">
               Unpolished moments, developed into light and tempo.
             </h1>
             <p className="mt-3 text-sm md:text-base leading-relaxed text-[#F2EFE9]/65 max-w-xl">
-              Every Day Folder synthesizes real pixel pigments, raw diary cadence in Russian or English,
+              Every Day Folder synthesizes real pixel pigments, raw diary cadence,
               and musical pulse into a living Polaroid sequence.
             </p>
           </div>
@@ -79,7 +79,7 @@ export const ArchiveView: React.FC<ArchiveViewProps> = ({
 
         {/* Mobile filter row (desktop uses TopBar nav) */}
         <div className="mb-8 flex md:hidden items-center gap-4 overflow-x-auto pb-2 text-xs">
-          {(['all', 'series', 'single', 'ru', 'en'] as ArchiveFilter[]).map((f) => (
+          {(['all', 'series', 'single'] as ArchiveFilter[]).map((f) => (
             <button
               key={f}
               type="button"
@@ -90,15 +90,7 @@ export const ArchiveView: React.FC<ArchiveViewProps> = ({
                   : 'border-transparent text-[#F2EFE9]/55'
               }`}
             >
-              {f === 'all'
-                ? 'All Days'
-                : f === 'series'
-                  ? 'Series'
-                  : f === 'single'
-                    ? 'One Moment'
-                    : f === 'ru'
-                      ? 'Русский'
-                      : 'English'}
+              {f === 'all' ? 'All Days' : f === 'series' ? 'Series' : 'One Moment'}
             </button>
           ))}
         </div>
@@ -157,6 +149,20 @@ export const ArchiveView: React.FC<ArchiveViewProps> = ({
                       background: `radial-gradient(circle, ${day.palette.accentHex}60 0%, ${day.palette.dominantHex}38 60%, transparent 100%)`,
                     }}
                   />
+
+                  <button
+                    type="button"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      onDeleteDay(day.id);
+                    }}
+                    aria-label={`Delete memory ${day.title}`}
+                    title="Delete memory"
+                    className="absolute right-3 top-4 z-20 inline-flex items-center gap-1 rounded-sm bg-[#121110]/85 px-2 py-1 text-[11px] font-medium text-[#F2EFE9]/90 backdrop-blur-sm transition-colors duration-150 hover:bg-red-600 hover:text-white cursor-pointer focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-red-400"
+                  >
+                    <Trash2 className="h-3 w-3" aria-hidden="true" />
+                    <span>Delete</span>
+                  </button>
 
                   <button
                     type="button"

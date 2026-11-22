@@ -10,6 +10,7 @@ import {
   Pause,
   Play,
   RotateCcw,
+  Trash2,
   Volume2,
   VolumeX,
 } from 'lucide-react';
@@ -24,6 +25,7 @@ interface LivingMemoryViewProps {
   onBack: () => void;
   onOpenFolder: () => void;
   onOpenWhyMood: () => void;
+  onDeleteDay: (id: string) => void;
 }
 
 export const LivingMemoryView: React.FC<LivingMemoryViewProps> = ({
@@ -31,6 +33,7 @@ export const LivingMemoryView: React.FC<LivingMemoryViewProps> = ({
   onBack,
   onOpenFolder,
   onOpenWhyMood,
+  onDeleteDay,
 }) => {
   const [phase, setPhase] = useState<'paper' | 'blooming' | 'developed'>('paper');
   const [revealedCount, setRevealedCount] = useState<number>(0);
@@ -384,6 +387,20 @@ export const LivingMemoryView: React.FC<LivingMemoryViewProps> = ({
             <Info className="h-3.5 w-3.5" aria-hidden="true" />
             <span>Why This Mood</span>
           </button>
+
+          <button
+            type="button"
+            onClick={() => {
+              stopVoiceover();
+              audioEngine.stop();
+              onDeleteDay(day.id);
+            }}
+            aria-label={`Delete memory ${day.title}`}
+            className={`inline-flex items-center gap-2 rounded-sm border px-3.5 py-2 text-xs font-medium transition-colors cursor-pointer whitespace-nowrap hover:border-red-400/60 hover:text-red-400 ${controlSurfaceClass}`}
+          >
+            <Trash2 className="h-3.5 w-3.5" aria-hidden="true" />
+            <span>Delete</span>
+          </button>
         </div>
       </header>
 
@@ -590,7 +607,7 @@ export const LivingMemoryView: React.FC<LivingMemoryViewProps> = ({
             ) : (
               <Volume2 className="h-3.5 w-3.5" aria-hidden="true" />
             )}
-            <span>{isVoiceoverPlaying ? 'Stop Voiceover' : 'Voiceover (Озвучка)'}</span>
+            <span>{isVoiceoverPlaying ? 'Stop Voiceover' : 'Voiceover'}</span>
           </button>
 
           <button

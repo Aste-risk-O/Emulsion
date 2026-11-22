@@ -102,7 +102,7 @@ export const NewDayModal: React.FC<NewDayModalProps> = ({ onClose, onCreated }) 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!rawText.trim()) {
-      setError('Write a few honest words in Russian or English about this day.');
+      setError('Write a few honest words about this day.');
       return;
     }
     if (photoSrcs.length === 0) {
@@ -270,7 +270,7 @@ export const NewDayModal: React.FC<NewDayModalProps> = ({ onClose, onCreated }) 
           {/* Step 2: Raw Diary Note */}
           <div>
             <label htmlFor="new-day-note" className="block font-tabular text-xs uppercase tracking-wider text-[#F2EFE9]/75">
-              2. Raw Diary Note (Russian or English)
+              2. Raw Diary Note
             </label>
             <textarea
               id="new-day-note"
@@ -283,7 +283,7 @@ export const NewDayModal: React.FC<NewDayModalProps> = ({ onClose, onCreated }) 
             />
             {liveNuance && (
               <p className="mt-1.5 font-tabular text-[11px] text-[#F2EFE9]/60">
-                Detected: {liveNuance.language.toUpperCase()} · {liveNuance.nuanceTags.join(' · ')}
+                Detected: {liveNuance.nuanceTags.join(' · ')}
               </p>
             )}
           </div>

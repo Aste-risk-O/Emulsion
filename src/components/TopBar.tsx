@@ -1,7 +1,7 @@
 import React from 'react';
 import { Plus } from 'lucide-react';
 
-export type ArchiveFilter = 'all' | 'series' | 'single' | 'ru' | 'en';
+export type ArchiveFilter = 'all' | 'series' | 'single';
 
 interface TopBarProps {
   activeFilter: ArchiveFilter;
@@ -14,8 +14,6 @@ const NAV_ITEMS: Array<{ id: ArchiveFilter; label: string }> = [
   { id: 'all', label: 'All Days' },
   { id: 'series', label: 'Series' },
   { id: 'single', label: 'One Moment' },
-  { id: 'ru', label: 'Русский' },
-  { id: 'en', label: 'English' },
 ];
 
 export const TopBar: React.FC<TopBarProps> = ({

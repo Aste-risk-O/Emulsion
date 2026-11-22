@@ -180,7 +180,7 @@ export const FolderDrawer: React.FC<FolderDrawerProps> = ({
 
           <div>
             <label htmlFor="folder-edit-text" className="block font-tabular text-[11px] uppercase tracking-wider text-[#F2EFE9]/60">
-              Raw Diary Note (RU / EN)
+              Raw Diary Note
             </label>
             <textarea
               id="folder-edit-text"
@@ -241,16 +241,14 @@ export const FolderDrawer: React.FC<FolderDrawerProps> = ({
               Re-Develop &amp; Save
             </button>
 
-            {!day.isPreloaded && (
-              <button
-                type="button"
-                onClick={() => onDeleteDay(day.id)}
-                className="inline-flex items-center gap-1.5 text-xs text-red-400 hover:text-red-300 cursor-pointer"
-              >
-                <Trash2 className="h-3.5 w-3.5" aria-hidden="true" />
-                <span>Delete Day</span>
-              </button>
-            )}
+            <button
+              type="button"
+              onClick={() => onDeleteDay(day.id)}
+              className="inline-flex items-center gap-1.5 text-xs text-red-400 hover:text-red-300 cursor-pointer"
+            >
+              <Trash2 className="h-3.5 w-3.5" aria-hidden="true" />
+              <span>Delete Day</span>
+            </button>
           </div>
         </form>
       </aside>

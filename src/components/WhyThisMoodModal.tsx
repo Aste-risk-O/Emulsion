@@ -77,8 +77,6 @@ export const WhyThisMoodModal: React.FC<WhyThisMoodModalProps> = ({ day, onClose
               “{day.rawText}”
             </p>
             <div className="mt-3 flex flex-wrap gap-x-4 gap-y-1.5 text-xs text-[#F2EFE9]/75 font-tabular">
-              <span>Language: {day.textNuance.language.toUpperCase()}</span>
-              <span aria-hidden="true">·</span>
               <span>Time: {day.textNuance.timeOfDay}</span>
               <span aria-hidden="true">·</span>
               <span>Movement: {day.textNuance.stillnessVsMovement}</span>

@@ -198,6 +198,7 @@ export default function App() {
               setIsFolderOpen(false);
               setIsWhyMoodOpen(false);
             }}
+            onDeleteDay={handleDeleteDay}
             onNewDay={() => setIsNewDayOpen(true)}
             onResetArchive={handleResetArchive}
           />
@@ -213,6 +214,7 @@ export default function App() {
             }}
             onOpenFolder={() => setIsFolderOpen(true)}
             onOpenWhyMood={() => setIsWhyMoodOpen(true)}
+            onDeleteDay={handleDeleteDay}
           />
 
           {isFolderOpen && (
