@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import React, { useCallback, useEffect, useRef, useState } from 'react';
 import {
   ArrowLeft,
   ChevronDown,
@@ -11,8 +11,6 @@ import {
   Play,
   RotateCcw,
   Trash2,
-  Volume2,
-  VolumeX,
 } from 'lucide-react';
 import type { MemoryDay } from '../types/memory';
 import { getMemoryCountHeadline } from '../engine/memorySynthesizer';
@@ -39,35 +37,16 @@ export const LivingMemoryView: React.FC<LivingMemoryViewProps> = ({
   const [revealedCount, setRevealedCount] = useState<number>(0);
   const [spotlightIndex, setSpotlightIndex] = useState<number | null>(null);
   const [isMusicPlaying, setIsMusicPlaying] = useState<boolean>(false);
-  const [isVoiceoverPlaying, setIsVoiceoverPlaying] = useState<boolean>(false);
-  const [activeCaptionIdx, setActiveCaptionIdx] = useState<number>(0);
   const [isStoryOpen, setIsStoryOpen] = useState<boolean>(false);
   const beatStepRef = useRef<number>(0);
 
   const revealTimersRef = useRef<number[]>([]);
-  const captionTimerRef = useRef<number | null>(null);
 
   const clearTimers = useCallback(() => {
     for (const id of revealTimersRef.current) {
       window.clearTimeout(id);
     }
     revealTimersRef.current = [];
-    if (captionTimerRef.current !== null) {
-      window.clearInterval(captionTimerRef.current);
-      captionTimerRef.current = null;
-    }
-  }, []);
-
-  const stopVoiceover = useCallback(() => {
-    if (typeof window !== 'undefined' && 'speechSynthesis' in window) {
-      window.speechSynthesis.cancel();
-    }
-    if (captionTimerRef.current !== null) {
-      window.clearInterval(captionTimerRef.current);
-      captionTimerRef.current = null;
-    }
-    audioEngine.setDucking(false);
-    setIsVoiceoverPlaying(false);
   }, []);
 
   const runDevelopingSequence = useCallback(
@@ -129,10 +108,9 @@ export const LivingMemoryView: React.FC<LivingMemoryViewProps> = ({
     runDevelopingSequence(true);
     return () => {
       clearTimers();
-      stopVoiceover();
       audioEngine.stop();
     };
-  }, [day.id, runDevelopingSequence, clearTimers, stopVoiceover]);
+  }, [day.id, runDevelopingSequence, clearTimers]);
 
   // Keyboard arrow navigation between moments
   useEffect(() => {
@@ -200,58 +178,6 @@ export const LivingMemoryView: React.FC<LivingMemoryViewProps> = ({
     });
   };
 
-  const handleToggleVoiceover = () => {
-    if (isVoiceoverPlaying) {
-      stopVoiceover();
-      return;
-    }
-
-    const segments =
-      day.textNuance.captionSegments.length > 0
-        ? day.textNuance.captionSegments
-        : [day.rawText];
-
-    setIsVoiceoverPlaying(true);
-    setActiveCaptionIdx(0);
-    audioEngine.setDucking(true);
-
-    const stepMs = Math.max(2000, Math.round((day.rawText.length * 65) / segments.length));
-    let capIdx = 0;
-    captionTimerRef.current = window.setInterval(() => {
-      capIdx += 1;
-      if (capIdx < segments.length) {
-        setActiveCaptionIdx(capIdx);
-      }
-    }, stepMs);
-
-    if (typeof window !== 'undefined' && 'speechSynthesis' in window) {
-      try {
-        window.speechSynthesis.cancel();
-        const utterance = new SpeechSynthesisUtterance(day.rawText);
-        const targetLang = day.textNuance.language === 'en' ? 'en-US' : 'ru-RU';
-        utterance.lang = targetLang;
-        utterance.rate = day.textNuance.voiceoverRate;
-        utterance.pitch = day.textNuance.voiceoverPitch;
-
-        const voices = window.speechSynthesis.getVoices();
-        const matchingVoice = voices.find((v) =>
-          v.lang.toLowerCase().startsWith(day.textNuance.language === 'en' ? 'en' : 'ru')
-        );
-        if (matchingVoice) utterance.voice = matchingVoice;
-
-        utterance.onend = () => stopVoiceover();
-        utterance.onerror = () => {
-          window.setTimeout(() => stopVoiceover(), 2600);
-        };
-        window.speechSynthesis.speak(utterance);
-      } catch {
-        window.setTimeout(() => stopVoiceover(), Math.max(3200, segments.length * stepMs));
-      }
-    } else {
-      globalThis.setTimeout(() => stopVoiceover(), Math.max(3200, segments.length * stepMs));
-    }
-  };
-
   const isSinglePhoto = day.photos.length === 1;
   const headline = getMemoryCountHeadline(day.photos.length);
   const activeIdx = spotlightIndex ?? Math.max(0, revealedCount - 1);
@@ -265,12 +191,6 @@ export const LivingMemoryView: React.FC<LivingMemoryViewProps> = ({
 
   const activeAccent = activePhoto?.accentHex || day.palette.accentHex;
   const activeHighlight = activePhoto?.highlightHex || day.palette.highlightHex;
-
-  const captionLines = useMemo(() => {
-    return day.textNuance.captionSegments.length > 0
-      ? day.textNuance.captionSegments
-      : [day.rawText];
-  }, [day.textNuance.captionSegments, day.rawText]);
 
   const [stop1, stop2, stop3] = day.visual.gradientStops;
   const isLightPaper = day.visual.inkPolarity === 'dark';
@@ -340,7 +260,6 @@ export const LivingMemoryView: React.FC<LivingMemoryViewProps> = ({
         <button
           type="button"
           onClick={() => {
-            stopVoiceover();
             audioEngine.stop();
             onBack();
           }}
@@ -391,7 +310,6 @@ export const LivingMemoryView: React.FC<LivingMemoryViewProps> = ({
           <button
             type="button"
             onClick={() => {
-              stopVoiceover();
               audioEngine.stop();
               onDeleteDay(day.id);
             }}
@@ -529,19 +447,6 @@ export const LivingMemoryView: React.FC<LivingMemoryViewProps> = ({
         )}
       </main>
 
-      {/* Cinema Captions during Voiceover */}
-      {isVoiceoverPlaying && (
-        <div
-          data-testid="voiceover-caption"
-          aria-live="polite"
-          className="pointer-events-none fixed inset-x-0 bottom-24 z-40 flex justify-center px-6"
-        >
-          <p className="max-w-2xl bg-black/82 px-5 py-2.5 text-center font-editorial text-lg md:text-xl italic text-[#F4F1EA] shadow-lg">
-            {captionLines[activeCaptionIdx] ?? day.rawText}
-          </p>
-        </div>
-      )}
-
       {/* Bottom Floating Control Dock */}
       <nav
         aria-label="Living memory controls"
@@ -595,19 +500,6 @@ export const LivingMemoryView: React.FC<LivingMemoryViewProps> = ({
               <Play className="h-3.5 w-3.5" aria-hidden="true" />
             )}
             <span>{isMusicPlaying ? `Pause · ${activeBpm} BPM` : `Play · ${activeBpm} BPM`}</span>
-          </button>
-
-          <button
-            type="button"
-            onClick={handleToggleVoiceover}
-            className="inline-flex items-center gap-1.5 rounded-sm px-3 py-2 text-xs font-medium hover:bg-black/10 cursor-pointer whitespace-nowrap"
-          >
-            {isVoiceoverPlaying ? (
-              <VolumeX className="h-3.5 w-3.5" aria-hidden="true" />
-            ) : (
-              <Volume2 className="h-3.5 w-3.5" aria-hidden="true" />
-            )}
-            <span>{isVoiceoverPlaying ? 'Stop Voiceover' : 'Voiceover'}</span>
           </button>
 
           <button
